@@ -1,4 +1,4 @@
-package main
+package rotaryLogger
 
 import (
 	"fmt"
@@ -14,15 +14,19 @@ var Logger *log.Logger
 
 var file os.File
 
-func startLogger(logAmount int, logLocation string, rotationPeriod time.Duration) {
+//StartLoggerWRotation starts the rotary logger. logAmount is the amount of
+//log files that will be retained on a rotation. logLocation is the file and
+//name (minus the .log prefix) of the logs, i.e. log/mylog. rotationPeriod
+//is the time duration between log rotations
+func StartLoggerWRotation(logAmount int, logLocation string, rotationPeriod time.Duration) {
 	logRotator(logAmount, logLocation)
 
-	newLogFile(logLocation)
+	StartLogger(logLocation)
 
 	ticker := time.NewTicker(rotationPeriod)
 	go func() {
 		for _ = range ticker.C {
-			Logger.Println("poo")
+			Logger.Println("Rotating Logs")
 
 			Logger = log.New(os.Stdout,
 				"", //"PREFIX: ",
@@ -30,14 +34,15 @@ func startLogger(logAmount int, logLocation string, rotationPeriod time.Duration
 
 			logRotator(logAmount, logLocation)
 
-			newLogFile(logLocation)
-			Logger.Println("wee")
+			StartLogger(logLocation)
 
 		}
 	}()
 }
 
-func newLogFile(logLocation string) {
+//StartLogger starts the Logger without any log rotation. logLocation is the
+//file and folder location of the log, i.e. log/myAppLogs.
+func StartLogger(logLocation string) {
 	file, err := os.OpenFile(logLocation+"0.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatal("Failed to open Logger file", err)
@@ -50,6 +55,8 @@ func newLogFile(logLocation string) {
 		log.Ldate|log.Ltime|log.Lshortfile)
 }
 
+//logRotator is a function that deletes the latermost log and shifts all the
+//rest of the logs by +1.
 func logRotator(logAmount int, logLocation string) {
 	//if log file number <logAmount> exists, delete it
 	if _, err := os.Stat(logLocation + strconv.Itoa(logAmount) + ".log"); os.IsNotExist(err) {
